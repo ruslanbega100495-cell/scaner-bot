@@ -1,0 +1,36 @@
+name: Freelance Scraper
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'  # Каждые 15 минут
+  workflow_dispatch:        # + ручной запуск
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_ADMIN_ID: ${{ secrets.TELEGRAM_ADMIN_ID }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      MIN_PRICE_FILTER: 1000
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci --production
+      
+      - name: Run migrations
+        run: npx prisma migrate deploy
+      
+      - name: Run scraper
+        run: npx tsx src/scripts/run-scraper.ts

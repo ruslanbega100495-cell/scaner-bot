@@ -1,0 +1,88 @@
+Да, можно одной командой! 🚀
+📦 Создай файл start.bat (в корне проекта)
+batch
+
+@echo off
+echo 🚀 Запуск Freelance Monitor Bot...
+
+REM Проверка Docker
+docker-compose -p scanner-bot ps >nul 2>&1
+if %errorlevel% neq 0 (
+    echo ⚙️  Запускаю контейнеры...
+    docker-compose -p scanner-bot up -d
+)
+
+REM Проверка зависимостей
+if not exist node_modules (
+    echo ⚙️  Устанавливаю зависимости...
+    npm install
+)
+
+REM Запуск приложения
+echo 🔄 Запускаю приложение...
+npm run dev
+
+pause
+
+
+
+🔧 Как использовать:
+Сохрани как start.bat в папке проекта
+Запусти двойным кликом ✅
+🎯 Быстрые команды (если вручную)
+powershell
+
+# 1. Перейди в проект
+cd "C:\Users\rusla\Desktop\проект\сканер бот"
+
+# 2. Запусти всё одной строкой:
+docker-compose -p scanner-bot up -d && npm run dev
+
+
+
+
+🛑 Остановка
+powershell
+
+
+# Остановить приложение: Ctrl+C в терминале
+
+# Остановить контейнеры:
+docker-compose -p scanner-bot down
+
+# Или одной командой всё:
+taskkill /F /IM node.exe 2>$null && docker-compose -p scanner-bot down
+
+
+
+🔍 Проверка работы
+powershell
+
+
+# Сервер жив?
+curl.exe http://localhost:3000/health
+
+# Запустить скрапинг:
+curl.exe "http://localhost:3000/api/v1/jobs/scan?source=kwork"
+
+# Посмотреть заказы:
+curl.exe http://localhost:3000/api/v1/jobs
+
+# Смотреть логи:
+Get-Content logs/all.log -Tail 20 -Wait
+
+
+
+
+📋 Чек-лист перед запуском
+
+
+✅ Docker Desktop запущен
+✅ Контейнеры: docker-compose -p scanner-bot ps
+✅ Ollama: curl http://localhost:11434/api/tags
+✅ Telegram токен в .env
+✅ База: источник "kwork" есть в таблице Source
+
+
+Сохрани start.bat — и запускай бота двойным кликом! 🎯
+Если что-то не так — пиши, быстро починим. 🛠️
