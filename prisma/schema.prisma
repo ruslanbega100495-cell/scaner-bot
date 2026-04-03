@@ -6,10 +6,11 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider     = "postgresql"
+  url          = env("DATABASE_URL")
+  schemas      = ["app"] // <-- Добавь эту строку
+  relationMode = "prisma" // (эта строка тоже полезна, но не обязательна)
 }
-
 // ============================================
 // SCANNER - Модели для сканера фриланс-заказов
 // ============================================
