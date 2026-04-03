@@ -8,10 +8,8 @@ generator client {
 datasource db {
   provider          = "postgresql"
   url               = env("DATABASE_URL")
-  // Добавляем эту строку, чтобы Prisma использовала временную БД для проверок
-  shadowDatabaseUrl = env("SHADOW_DATABASE_URL") 
-  // Указываем схему для основных таблиц
   schemas           = ["app"]
+  // shadowDatabaseUrl пока закомментируй или удали для локальной работы
 }
 
 // ============================================
