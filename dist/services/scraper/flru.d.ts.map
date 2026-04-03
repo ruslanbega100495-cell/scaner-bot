@@ -1,0 +1,1 @@
+{"version":3,"file":"flru.d.ts","sourceRoot":"","sources":["../../../src/services/scraper/flru.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,WAAW,EAAE,MAAM,QAAQ,CAAC;AAGrC;;GAEG;AACH,qBAAa,WAAY,SAAQ,WAAW;IAC1C,SAAS,CAAC,OAAO,SAAqC;IAEhD,MAAM,CAAC,GAAG,CAAC,EAAE,MAAM,GAAG,OAAO,CAAC,GAAG,EAAE,CAAC;IAqB1C;;OAEG;IACH,OAAO,CAAC,QAAQ;IAoChB;;OAEG;IACH,OAAO,CAAC,SAAS;CAGlB"}
