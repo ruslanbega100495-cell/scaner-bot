@@ -6,10 +6,11 @@ generator client {
 }
 
 datasource db {
-  provider          = "postgresql"
-  url               = env("DATABASE_URL")
-  schemas           = ["app"]
-  // shadowDatabaseUrl пока закомментируй или удали для локальной работы
+  provider     = "postgresql"
+  url          = env("DATABASE_URL")
+  schemas      = ["app"]
+  // Эта настройка скажет Prisma хранить таблицу миграций тоже в схеме 'app'
+  // Но в текущей версии Prisma это работает неявно через schemas
 }
 
 // ============================================
