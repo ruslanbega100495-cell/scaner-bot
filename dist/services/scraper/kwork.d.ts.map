@@ -1,1 +1,0 @@
-{"version":3,"file":"kwork.d.ts","sourceRoot":"","sources":["../../../src/services/scraper/kwork.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,WAAW,EAAE,MAAM,QAAQ,CAAC;AAGrC;;GAEG;AACH,qBAAa,YAAa,SAAQ,WAAW;IAC3C,SAAS,CAAC,OAAO,SAA+B;IAE1C,MAAM,CAAC,GAAG,CAAC,EAAE,MAAM,GAAG,OAAO,CAAC,GAAG,EAAE,CAAC;IAiC1C;;;;;;;;;;OAUG;IACH,OAAO,CAAC,SAAS;CAyElB"}
