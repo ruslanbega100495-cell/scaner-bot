@@ -1,5 +1,4 @@
 import axios from 'axios';
-import config from '../../config';
 import logger from '../../utils/logger';
 
 export interface AIResult {
@@ -10,149 +9,143 @@ export interface AIResult {
   priceFound: number | null;
 }
 
-/**
- * AI фильтрация заказов
- * С graceful fallback при недоступности API
- */
 export class AIFilter {
-  private ollamaUrl: string;
-  private model: string;
-  
+  private apiKey: string;
+  private model: string = 'llama3-8b-8192'; // бесплатная модель Groq
+
+  private GOOD_KEYWORDS = [
+    'бот', 'telegram', 'парсер', 'скрапер', 'автоматизация',
+    'python', 'javascript', 'typescript', 'node', 'react', 'vue',
+    'api', 'сайт', 'лендинг', 'backend', 'frontend', 'fullstack',
+    'разработка', 'программист', 'верстка', 'скрипт', 'интеграция',
+    'база данных', 'sql', 'mongodb', 'postgresql', 'redis',
+    'деплой', 'docker', 'linux', 'vps', 'сервер',
+    'openai', 'gpt', 'нейросеть', 'ml', 'ai',
+  ];
+
+  private BAD_KEYWORDS = [
+    'менеджер', 'продажи', 'холодные звонки', 'колл-центр',
+    'smm', 'instagram', 'tiktok', 'контент', 'копирайт',
+    'дизайн логотип', 'иллюстрация', 'фото', 'видео монтаж',
+    'переводчик', 'перевод текста', 'репетитор',
+    'бухгалтер', 'юрист', 'курьер', 'водитель',
+  ];
+
   constructor() {
-    this.ollamaUrl = `${config.ollamaBaseUrl}/api/generate`;
-    this.model = config.ollamaModel;
-    
-    logger.info(`🤖 AI Filter initialized: ${this.ollamaUrl} (${this.model})`);
+    this.apiKey = process.env.GROQ_API_KEY || '';
+    if (this.apiKey) {
+      logger.info(`🤖 AI Filter initialized: Groq (${this.model})`);
+    } else {
+      logger.warn(`⚠️ GROQ_API_KEY not set, using keyword filter only`);
+    }
   }
-  
-  /**
-   * Анализ заказа
-   * Всегда возвращает результат (даже при ошибке API)
-   */
+
   async analyze(job: {
     title: string;
     description: string;
     price?: number | null;
   }): Promise<AIResult> {
-    const prompt = this.createPrompt(job);
-    
-    try {
-      logger.info(`🤖 Sending request to Ollama...`);
-      
-      const response = await axios.post(this.ollamaUrl, {
-        model: this.model,
-        prompt: prompt,
-        stream: false,
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        timeout: 60000, // 60 секунд
-      });
-      
-      const aiResponse = response.data.response || '';
-      logger.info(`🤖 Raw AI response: ${aiResponse.substring(0, 200)}...`);
-      
-      // Парсим ответ AI
-      const result = this.parseAIResponse(aiResponse);
-      logger.info(`🤖 Parsed result: score=${result.score}, suitable=${result.isSuitable}`);
-      
-      return result;
-      
-    } catch (error: any) {
-      logger.warn(`⚠️ AI filter API failed: ${error.message}`);
-      
-      if (error.code === 'ECONNREFUSED') {
-        logger.warn(`⚠️ Ollama not running - using fallback`);
-      } else if (error.response?.status === 404) {
-        logger.warn(`⚠️ Ollama endpoint not found - using fallback`);
-      } else if (error.code === 'ETIMEDOUT') {
-        logger.warn(`⚠️ Ollama timeout - using fallback`);
+    if (this.apiKey) {
+      try {
+        return await this.analyzeWithGroq(job);
+      } catch (error: any) {
+        logger.warn(`⚠️ Groq failed: ${error.message}, switching to keyword filter`);
       }
-      
-      // Graceful fallback - пропускаем job с высоким score
-      return {
-        isSuitable: true,
-        score: 10,
-        reason: 'AI service unavailable - using fallback (all jobs pass through)',
-        technologies: [],
-        priceFound: job.price || null,
-      };
     }
+    return this.analyzeWithKeywords(job);
   }
-  
-  /**
-   * Создание промпта
-   */
-  private createPrompt(job: {
+
+  private async analyzeWithGroq(job: {
     title: string;
     description: string;
     price?: number | null;
-  }): string {
-    return `Ты — эксперт по анализу фриланс-заказов.
+  }): Promise<AIResult> {
+    logger.info(`🤖 Sending request to Groq...`);
 
-Проанализируй заказ и определи:
-1. Подходит ли нам (программист, боты, сайты, автоматизация)
-2. Оцени от 1 до 10
-3. Извлеки технологии
+    const prompt = `Ты — эксперт по анализу фриланс-заказов для программиста.
 
-ЗАКАЗ:
+Проанализируй заказ:
 Заголовок: ${job.title}
-Описание: ${job.description.substring(0, 500)}
+Описание: ${(job.description || '').substring(0, 400)}
 ${job.price ? `Цена: ${job.price}₽` : ''}
 
-ВЕРНИ JSON:
-{
-  "is_suitable": true/false,
-  "score": 0-10,
-  "reason": "краткое объяснение",
-  "technologies": ["список"],
-  "price_found": число или null
-}
+Подходящие заказы: боты, сайты, скрипты, автоматизация, парсеры, API, программирование.
+НЕ подходят: дизайн, SMM, копирайтинг, звонки, менеджмент.
 
-Ответ ТОЛЬКО JSON, без markdown.`;
+Ответь ТОЛЬКО JSON без markdown:
+{"is_suitable": true/false, "score": 0-10, "reason": "кратко", "technologies": [], "price_found": null}`;
+
+    const response = await axios.post(
+      'https://api.groq.com/openai/v1/chat/completions',
+      {
+        model: this.model,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 300,
+        temperature: 0.1,
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 15000, // Groq очень быстрый, 15 сек хватит
+      }
+    );
+
+    const aiText = response.data.choices?.[0]?.message?.content || '';
+    logger.info(`🤖 Groq response: ${aiText.substring(0, 200)}`);
+    return this.parseAIResponse(aiText, job.price);
   }
-  
-  /**
-   * Парсинг ответа AI
-   */
-  private parseAIResponse(response: string): AIResult {
+
+  private analyzeWithKeywords(job: {
+    title: string;
+    description: string;
+    price?: number | null;
+  }): AIResult {
+    const text = `${job.title} ${job.description}`.toLowerCase();
+    let score = 5;
+    const foundTech: string[] = [];
+
+    for (const kw of this.GOOD_KEYWORDS) {
+      if (text.includes(kw.toLowerCase())) {
+        score += 1;
+        foundTech.push(kw);
+      }
+    }
+    for (const kw of this.BAD_KEYWORDS) {
+      if (text.includes(kw.toLowerCase())) {
+        score -= 2;
+      }
+    }
+
+    score = Math.max(0, Math.min(10, score));
+    const isSuitable = score >= 6;
+
+    logger.info(`🔑 Keyword filter: score=${score}, suitable=${isSuitable}`);
+
+    return {
+      isSuitable,
+      score,
+      reason: isSuitable ? `Keyword match: ${foundTech.slice(0, 3).join(', ')}` : 'No relevant keywords',
+      technologies: foundTech,
+      priceFound: job.price || null,
+    };
+  }
+
+  private parseAIResponse(response: string, price?: number | null): AIResult {
     try {
-      logger.debug(`Parsing AI response: ${response}`);
-      
-      // Очищаем от markdown
-      const cleaned = response
-        .replace(/```json/g, '')
-        .replace(/```/g, '')
-        .replace(/```/g, '')
-        .trim();
-      
-      // Пытаемся найти JSON в ответе
+      const cleaned = response.replace(/```json|```/g, '').trim();
       const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-      const jsonString = jsonMatch ? jsonMatch[0] : cleaned;
-      
-      const parsed = JSON.parse(jsonString);
-      
+      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : cleaned);
       return {
         isSuitable: parsed.is_suitable || false,
         score: typeof parsed.score === 'number' ? parsed.score : 0,
-        reason: parsed.reason || 'No reason provided',
+        reason: parsed.reason || '',
         technologies: Array.isArray(parsed.technologies) ? parsed.technologies : [],
-        priceFound: typeof parsed.price_found === 'number' ? parsed.price_found : null,
+        priceFound: typeof parsed.price_found === 'number' ? parsed.price_found : (price || null),
       };
-      
-    } catch (error) {
-      logger.error(`Failed to parse AI response: ${error}`);
-      logger.error(`Raw response: ${response}`);
-      
-      // Возвращаем дефолтный результат при ошибке парсинга
-      return {
-        isSuitable: false,
-        score: 0,
-        reason: 'Failed to parse AI response',
-        technologies: [],
-        priceFound: null,
-      };
+    } catch {
+      return this.analyzeWithKeywords({ title: '', description: response, price });
     }
   }
 }

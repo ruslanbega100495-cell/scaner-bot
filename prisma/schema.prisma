@@ -1,33 +1,26 @@
 // prisma/schema.prisma
-// Marketplace Infographic Generation System + Freelance Scanner
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider     = "postgresql"
-  url          = env("DATABASE_URL")
-  schemas      = ["app"]
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-// ============================================
-// SCANNER - Модели для сканера фриланс-заказов
-// ============================================
-
 model ScannerSource {
-  id              Int           @id @default(autoincrement())
-  name            String        @unique
-  type            SourceType
-  url             String
-  isActive        Boolean       @default(true)
-  scanInterval    Int           @default(900)  // 15 минут для GitHub Actions
-  rateLimit       Int           @default(60)
-  lastScannedAt   DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  
-  scannerJobs     ScannerJob[]
+  id            Int          @id @default(autoincrement())
+  name          String       @unique
+  type          SourceType
+  url           String
+  isActive      Boolean      @default(true)
+  scanInterval  Int          @default(900)
+  rateLimit     Int          @default(60)
+  lastScannedAt DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  scannerJobs   ScannerJob[]
 
   @@index([name])
   @@index([type])
@@ -41,34 +34,24 @@ enum SourceType {
 }
 
 model ScannerJob {
-  id              Int           @id @default(autoincrement())
-  externalId      String?
-  sourceId        Int
-  source          ScannerSource @relation(fields: [sourceId], references: [id])
-  
-  // Данные заказа
-  url             String        @unique
-  title           String
-  description     String?       @db.Text
-  priceMin        Int?
-  priceMax        Int?
-  
-  // AI анализ
-  aiScore         Int           @default(0)
-  aiReason        String?       @db.Text
-  isSuitable      Boolean       @default(false)
-  
-  // Статус
-  status          ScannerJobStatus @default(NEW)
-  
-  // Временные метки
-  scrapedAt       DateTime      @default(now())
-  processedAt     DateTime?
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  
-  notifications   ScannerNotification[]
+  id          Int           @id @default(autoincrement())
+  externalId  String?
+  sourceId    Int
+  source      ScannerSource @relation(fields: [sourceId], references: [id])
+  url         String        @unique
+  title       String
+  description String?       @db.Text
+  priceMin    Int?
+  priceMax    Int?
+  aiScore     Int           @default(0)
+  aiReason    String?       @db.Text
+  isSuitable  Boolean       @default(false)
+  status      ScannerJobStatus @default(NEW)
+  scrapedAt   DateTime      @default(now())
+  processedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  notifications ScannerNotification[]
 
   @@index([sourceId])
   @@index([status])
@@ -86,20 +69,17 @@ enum ScannerJobStatus {
 }
 
 model ScannerNotification {
-  id              Int           @id @default(autoincrement())
-  jobId           Int
-  job             ScannerJob   @relation(fields: [jobId], references: [id])
-  
-  userId          String
-  telegramId      BigInt
-  message         String        @db.Text
-  
-  status          NotificationStatus @default(PENDING)
-  sentAt          DateTime?
-  errorMessage    String?
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id           Int                @id @default(autoincrement())
+  jobId        Int
+  job          ScannerJob         @relation(fields: [jobId], references: [id])
+  userId       String
+  telegramId   BigInt
+  message      String             @db.Text
+  status       NotificationStatus @default(PENDING)
+  sentAt       DateTime?
+  errorMessage String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
 
   @@index([jobId])
   @@index([telegramId])
@@ -112,19 +92,15 @@ enum NotificationStatus {
   FAILED
 }
 
-// ============================================
-// USER SETTINGS - Настройки фильтров пользователя
-// ============================================
-
 model UserSettings {
-  id              Int      @id @default(autoincrement())
-  telegramId      BigInt   @unique
-  keywords        String[]
-  minPrice        Int?
-  maxPrice        Int?
-  enabled         Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id         Int      @id @default(autoincrement())
+  telegramId BigInt   @unique
+  keywords   String[]
+  minPrice   Int?
+  maxPrice   Int?
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@map("UserSettings")
   @@index([telegramId])
